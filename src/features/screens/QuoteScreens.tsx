@@ -56,7 +56,7 @@ export function QuoteTargetScreen(props: ScreenProps) {
       description="Primer paso del flujo. Aqui se define el tipo de cotizacion."
     >
       <div className="option-grid">
-        {["Para mi", "Para otra persona", "Grupo familiar"].map((item) => (
+        {["Personas", "Empresas"].map((item) => (
           <button
             key={item}
             className={`option-card ${data.quoteTarget === item ? "selected" : ""}`}
@@ -82,29 +82,7 @@ export function HolderDataScreen(props: ScreenProps) {
       description="Captura de datos basicos del titular de la cotizacion."
     >
       <div className="form-grid">
-        <label>
-          Tipo de documento
-          <select
-            value={data.documentType ?? ""}
-            onChange={(e) => updateData({ documentType: e.target.value })}
-          >
-            <option value="">Seleccione</option>
-            <option value="CC">Cedula</option>
-            <option value="PAS">Pasaporte</option>
-            <option value="RUC">RUC</option>
-          </select>
-        </label>
-
-        <label>
-          Numero de documento
-          <input
-            value={data.documentNumber ?? ""}
-            onChange={(e) => updateData({ documentNumber: e.target.value })}
-            placeholder="Ej: 0912345678"
-          />
-        </label>
-
-        <label>
+         <label>
           Nombre completo
           <input
             value={data.fullName ?? ""}
@@ -113,22 +91,41 @@ export function HolderDataScreen(props: ScreenProps) {
           />
         </label>
 
-        <label>
-          Correo
+         <label>
+          Edad
           <input
-            value={data.email ?? ""}
-            onChange={(e) => updateData({ email: e.target.value })}
-            placeholder="correo@dominio.com"
+            value={data.edad ?? ""}
+            onChange={(e) => updateData({ edad: e.target.value })}
+            placeholder="Edad"
           />
         </label>
 
         <label>
-          Telefono
-          <input
-            value={data.phone ?? ""}
-            onChange={(e) => updateData({ phone: e.target.value })}
-            placeholder="0999999999"
-          />
+          Genero
+          <select
+            value={data.genero ?? ""}
+            onChange={(e) => updateData({ genero: e.target.value })}
+          >
+            <option value="">Seleccione</option>
+            <option>Masculino</option>
+            <option>Femenino</option>
+          </select>
+        </label>
+
+       
+
+        <label>
+          Provincia
+          <select
+            value={data.provincia ?? ""}
+            onChange={(e) => updateData({ provincia: e.target.value })}
+          >
+            <option value="">Seleccione</option>
+            <option>Quito</option>
+            <option>Pichincha</option>
+             <option>Olmedo</option>
+              <option>Manta</option>
+          </select>
         </label>
       </div>
 
