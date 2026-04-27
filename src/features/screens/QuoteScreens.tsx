@@ -1,5 +1,8 @@
 import type { QuoteData } from "../types";
 import { ScreenShell } from "../../shared/components/ScreenShell";
+import { availablePlans } from "../data/plansData";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ScreenProps {
   data: QuoteData;
@@ -11,18 +14,31 @@ interface ScreenProps {
   track: (event: string, payload?: Record<string, unknown>) => void;
 }
 
-function Actions({ onBack, onNext, isFirst, isLast }: ScreenProps) {
+interface ActionsProps
+  extends Pick<ScreenProps, "onBack" | "onNext" | "isFirst" | "isLast"> {
+  nextDisabled?: boolean;
+  nextLabel?: string;
+}
+
+function Actions({
+  onBack,
+  onNext,
+  isFirst,
+  isLast,
+  nextDisabled = false,
+  nextLabel = "Continuar"
+}: ActionsProps) {
   return (
     <div className="actions">
       {!isFirst && (
         <button className="btn-secondary" onClick={onBack}>
-          Atrás
+          Atras
         </button>
       )}
 
       {!isLast && (
-        <button className="btn-primary" onClick={onNext}>
-          Continuar
+        <button className="btn-primary" onClick={onNext} disabled={nextDisabled}>
+          {nextLabel}
         </button>
       )}
     </div>
@@ -39,18 +55,18 @@ export function QuoteTargetScreen(props: ScreenProps) {
 
   return (
     <ScreenShell
-      title="Seleccionar a quién cotizar"
-      description="Primer paso del flujo. Aquí se define el tipo de cotización."
+      title="Seleccionar a quien cotizar"
+      description="Primer paso del flujo. Aqui se define el tipo de cotizacion."
     >
       <div className="option-grid">
-        {["Para mí", "Para otra persona", "Grupo familiar"].map((item) => (
+        {["Para mi", "Para otra persona", "Grupo familiar"].map((item) => (
           <button
             key={item}
             className={`option-card ${data.quoteTarget === item ? "selected" : ""}`}
             onClick={() => selectTarget(item)}
           >
             <strong>{item}</strong>
-            <span>Cotización médica integral</span>
+            <span>Cotizacion medica integral</span>
           </button>
         ))}
       </div>
@@ -66,7 +82,7 @@ export function HolderDataScreen(props: ScreenProps) {
   return (
     <ScreenShell
       title="Datos del asegurado titular"
-      description="Captura de datos básicos del titular de la cotización."
+      description="Captura de datos basicos del titular de la cotizacion."
     >
       <div className="form-grid">
         <label>
@@ -76,14 +92,14 @@ export function HolderDataScreen(props: ScreenProps) {
             onChange={(e) => updateData({ documentType: e.target.value })}
           >
             <option value="">Seleccione</option>
-            <option value="CC">Cédula</option>
+            <option value="CC">Cedula</option>
             <option value="PAS">Pasaporte</option>
             <option value="RUC">RUC</option>
           </select>
         </label>
 
         <label>
-          Número de documento
+          Numero de documento
           <input
             value={data.documentNumber ?? ""}
             onChange={(e) => updateData({ documentNumber: e.target.value })}
@@ -110,7 +126,7 @@ export function HolderDataScreen(props: ScreenProps) {
         </label>
 
         <label>
-          Teléfono
+          Telefono
           <input
             value={data.phone ?? ""}
             onChange={(e) => updateData({ phone: e.target.value })}
@@ -146,7 +162,7 @@ export function BeneficiariesScreen(props: ScreenProps) {
           Parentesco
           <select>
             <option>Seleccione</option>
-            <option>Cónyuge</option>
+            <option>Conyuge</option>
             <option>Hijo/a</option>
             <option>Padre/Madre</option>
           </select>
@@ -173,11 +189,11 @@ export function ProductsScreen(props: ScreenProps) {
     },
     {
       name: "Medihumana Familiar",
-      description: "Protección médica para el grupo familiar."
+      description: "Proteccion medica para el grupo familiar."
     },
     {
       name: "Humana Contigo",
-      description: "Acompañamiento médico y servicios complementarios."
+      description: "Acompanamiento medico y servicios complementarios."
     }
   ];
 
@@ -217,12 +233,12 @@ export function PlansScreen(props: ScreenProps) {
     {
       name: "Esencial",
       price: "$45 / mes",
-      benefits: "Cobertura básica, consultas y emergencias."
+      benefits: "Cobertura basica, consultas y emergencias."
     },
     {
       name: "Plus",
       price: "$75 / mes",
-      benefits: "Mayor cobertura, especialistas y hospitalización."
+      benefits: "Mayor cobertura, especialistas y hospitalizacion."
     },
     {
       name: "Premium",
@@ -234,10 +250,10 @@ export function PlansScreen(props: ScreenProps) {
   return (
     <ScreenShell
       title="Visualizar planes y seleccionar plan"
-      description="Agrupa los pasos 5 y 6 del flujo."
+      description="Agrupa los pasos 5 y 6 del flujo. Seleccione un plan o elija compararlos."
     >
       <div className="plan-grid">
-        {plans.map((plan) => (
+{availablePlans.map((plan) => (
           <button
             key={plan.name}
             className={`plan-card ${data.selectedPlan === plan.name ? "selected" : ""}`}
@@ -253,6 +269,32 @@ export function PlansScreen(props: ScreenProps) {
         ))}
       </div>
 
+      <div style={{ marginTop: "2rem", padding: "1.5rem", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
+        <h3 style={{ marginTop: 0, marginBottom: "1rem", fontSize: "1rem" }}>¿Desea comparar planes?</h3>
+        <div className="option-grid">
+          <button
+            className={`option-card ${data.wantsToCompare === true ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: true });
+              track("decision_compare_plans", { wantsToCompare: true });
+            }}
+          >
+            <strong>Sí</strong>
+            <span>Quiero ver un cuadro comparativo</span>
+          </button>
+          <button
+            className={`option-card ${data.wantsToCompare === false ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: false });
+              track("decision_compare_plans", { wantsToCompare: false });
+            }}
+          >
+            <strong>No</strong>
+            <span>Continuar con el plan seleccionado</span>
+          </button>
+        </div>
+      </div>
+
       <Actions {...props} />
     </ScreenShell>
   );
@@ -261,21 +303,34 @@ export function PlansScreen(props: ScreenProps) {
 export function PromotionsScreen(props: ScreenProps) {
   const { data, updateData, track } = props;
 
+  const selectAction = (nextAction: "sale" | "send-quote") => {
+    updateData({ nextAction });
+    track("select_next_action", { nextAction });
+  };
+
   return (
     <ScreenShell
-      title="Promociones y resumen de cotización"
-      description="Paso 8 del flujo. Antes de iniciar venta se muestran beneficios o promociones."
+      title="Promociones y resumen de cotizacion"
+      description="Paso 8 del flujo. Selecciona la accion para continuar."
     >
       <div className="summary-card">
         <h2>Resumen</h2>
-        <p><strong>Cotización:</strong> {data.quoteTarget || "No seleccionado"}</p>
-        <p><strong>Titular:</strong> {data.fullName || "Sin datos"}</p>
-        <p><strong>Producto:</strong> {data.selectedProduct || "No seleccionado"}</p>
-        <p><strong>Plan:</strong> {data.selectedPlan || "No seleccionado"}</p>
+        <p>
+          <strong>Cotizacion:</strong> {data.quoteTarget || "No seleccionado"}
+        </p>
+        <p>
+          <strong>Titular:</strong> {data.fullName || "Sin datos"}
+        </p>
+        <p>
+          <strong>Producto:</strong> {data.selectedProduct || "No seleccionado"}
+        </p>
+        <p>
+          <strong>Plan:</strong> {data.selectedPlan || "No seleccionado"}
+        </p>
       </div>
 
       <div className="promotion-box">
-        <strong>Promoción disponible</strong>
+        <strong>Promocion disponible</strong>
         <p>10% de descuento durante los primeros 3 meses.</p>
 
         <button
@@ -287,11 +342,138 @@ export function PromotionsScreen(props: ScreenProps) {
             track("select_promotion", { promotion: "10-percent" });
           }}
         >
-          Aplicar promoción
+          Aplicar promocion
+        </button>
+      </div>
+
+      <div className="promotion-box">
+        <strong>Que deseas hacer?</strong>
+        <p>Define la ruta desde el paso 8 para continuar la simulacion.</p>
+
+        <div className="option-grid">
+          <button
+            className={`option-card ${data.nextAction === "send-quote" ? "selected" : ""}`}
+            onClick={() => selectAction("send-quote")}
+          >
+            <strong>Enviar cotizacion</strong>
+            <span>Flujo 8 - 8.2 - 8.2.1</span>
+          </button>
+
+          <button
+            className={`option-card ${data.nextAction === "sale" ? "selected" : ""}`}
+            onClick={() => selectAction("sale")}
+          >
+            <strong>Iniciar venta</strong>
+            <span>Flujo 8 - 8.3 - etapa de venta</span>
+          </button>
+        </div>
+      </div>
+
+      <Actions {...props} nextDisabled={!data.nextAction} />
+    </ScreenShell>
+  );
+}
+
+export function QuoteSendLoginScreen(props: ScreenProps) {
+  const { track } = props;
+
+  return (
+    <ScreenShell
+      title="Iniciar sesion para enviar cotizacion"
+      description="Paso 8.2: validacion de credenciales personales."
+    >
+      <div className="login-box">
+        <label>
+          Usuario
+          <input placeholder="usuario.broker" />
+        </label>
+
+        <label>
+          Contrasena
+          <input type="password" placeholder="********" />
+        </label>
+
+        <button
+          className="btn-primary full"
+          onClick={() =>
+            track("quote_send_login_attempt", { result: "mock_success" })
+          }
+        >
+          Validar credenciales
         </button>
       </div>
 
       <Actions {...props} />
+    </ScreenShell>
+  );
+}
+
+export function QuoteSendFollowupScreen(props: ScreenProps) {
+  const { data, updateData, track } = props;
+
+  const channels = [
+    { id: "email", title: "Correo electronico", detail: "Enviar PDF al cliente" },
+    { id: "whatsapp", title: "Whatsapp", detail: "Compartir enlace y cotizacion" },
+    { id: "call", title: "Llamada", detail: "Registrar contacto telefonico" }
+  ];
+
+  return (
+    <ScreenShell
+      title="Enviar cotizacion y dar seguimiento"
+      description="Paso 8.2.1: envio de propuesta y registro de seguimiento."
+    >
+      <div className="summary-card">
+        <h2>Cotizacion lista para envio</h2>
+        <p>
+          <strong>Titular:</strong> {data.fullName || "Sin datos"}
+        </p>
+        <p>
+          <strong>Producto:</strong> {data.selectedProduct || "No seleccionado"}
+        </p>
+        <p>
+          <strong>Plan:</strong> {data.selectedPlan || "No seleccionado"}
+        </p>
+      </div>
+
+      <div className="promotion-box">
+        <strong>Canal de seguimiento</strong>
+        <p>Selecciona el canal para enviar y registrar la cotizacion.</p>
+
+        <div className="option-grid">
+          {channels.map((channel) => (
+            <button
+              key={channel.id}
+              className={`option-card ${
+                data.followupChannel === channel.id ? "selected" : ""
+              }`}
+              onClick={() => {
+                updateData({ followupChannel: channel.id });
+                track("select_followup_channel", { channel: channel.id });
+              }}
+            >
+              <strong>{channel.title}</strong>
+              <span>{channel.detail}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        className="btn-primary full"
+        onClick={() =>
+          track("send_quote_followup", {
+            channel: data.followupChannel ?? "not_selected"
+          })
+        }
+      >
+        Enviar cotizacion y registrar seguimiento
+      </button>
+
+      <div className="actions">
+        <button className="btn-secondary" onClick={props.onBack}>
+          Atras
+        </button>
+      </div>
     </ScreenShell>
   );
 }
@@ -311,7 +493,7 @@ export function LoginScreen(props: ScreenProps) {
         </label>
 
         <label>
-          Contraseña
+          Contrasena
           <input type="password" placeholder="********" />
         </label>
 
@@ -332,19 +514,17 @@ export function SalesStageScreen(props: ScreenProps) {
   return (
     <ScreenShell
       title="Etapa de venta"
-      description="Pantalla final de la POC. Aquí iniciaría el flujo real de venta."
+      description="Pantalla final de la POC. Aqui iniciaria el flujo real de venta."
     >
       <div className="success-panel">
-        <div className="success-icon">✓</div>
+        <div className="success-icon">OK</div>
         <h2>Venta iniciada correctamente</h2>
-        <p>
-          La POC llegó hasta la etapa de venta siguiendo la secuencia definida.
-        </p>
+        <p>La POC llego hasta la etapa de venta siguiendo la secuencia definida.</p>
       </div>
 
       <div className="actions">
         <button className="btn-secondary" onClick={props.onBack}>
-          Atrás
+          Atras
         </button>
       </div>
     </ScreenShell>
