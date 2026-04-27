@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { Header } from "../../shared/components/Header";
 import { ProgressStepper } from "../../shared/components/ProgressStepper";
 import { useInteractionTracker } from "../../shared/tracking/useInteractionTracker";
-import { flowSteps } from "../data/flowSteps";
-import type { QuoteData } from "../types";
+import { flowStepMap } from "../data/flowSteps";
+import type { FlowStepId, QuoteData } from "../types";
 import {
   BeneficiariesScreen,
   HolderDataScreen,
@@ -11,40 +11,76 @@ import {
   PlansScreen,
   ProductsScreen,
   PromotionsScreen,
+  QuoteSendFollowupScreen,
+  QuoteSendLoginScreen,
   QuoteTargetScreen,
   SalesStageScreen,
   ComparePlansScreen,      // Añadido
   DownloadComparisonScreen // Añadido
 } from "../screens/QuoteScreens";
 
-// El orden de los componentes debe coincidir exactamente con el de flowSteps.ts
-const screens = [
-  QuoteTargetScreen,        // Índice 0
-  HolderDataScreen,         // Índice 1
-  BeneficiariesScreen,      // Índice 2
-  ProductsScreen,           // Índice 3
-  PlansScreen,              // Índice 4
-  ComparePlansScreen,       // Índice 5 (Nuevo 6.1)
-  DownloadComparisonScreen, // Índice 6 (Nuevo 6.2 - Fin)
-  PromotionsScreen,         // Índice 7 (Paso 8)
-  LoginScreen,              // Índice 8
-  SalesStageScreen          // Índice 9
+interface ScreenProps {
+  data: QuoteData;
+  updateData: (data: Partial<QuoteData>) => void;
+  onNext: () => void;
+  onBack: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+  track: (event: string, payload?: Record<string, unknown>) => void;
+}
+
+type ScreenComponent = (props: ScreenProps) => JSX.Element;
+
+const sharedPath: FlowStepId[] = [
+  "quote-target",
+  "holder-data",
+  "beneficiaries",
+  "products",
+  "plans",
+  "promotions"
 ];
+
+const sendQuotePath: FlowStepId[] = [
+  ...sharedPath,
+  "quote-send-login",
+  "quote-send-followup"
+];
+
+const salePath: FlowStepId[] = [...sharedPath, "login", "sales-stage"];
+
+const screensByStepId: Record<FlowStepId, ScreenComponent> = {
+  "quote-target": QuoteTargetScreen,
+  "holder-data": HolderDataScreen,
+  beneficiaries: BeneficiariesScreen,
+  products: ProductsScreen,
+  plans: PlansScreen,
+  promotions: PromotionsScreen,
+  "quote-send-login": QuoteSendLoginScreen,
+  "quote-send-followup": QuoteSendFollowupScreen,
+  login: LoginScreen,
+  "sales-stage": SalesStageScreen
+};
 
 export function QuoteFlow() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [quoteData, setQuoteData] = useState<QuoteData>({});
 
-  const currentStep = flowSteps[currentIndex];
-  const CurrentScreen = screens[currentIndex];
+  const activePath = useMemo(
+    () => (quoteData.nextAction === "send-quote" ? sendQuotePath : salePath),
+    [quoteData.nextAction]
+  );
 
-  const {
-    events,
-    track,
-    trackScreenExit,
-    clearEvents,
-    exportEvents
-  } = useInteractionTracker(currentStep.id);
+  const activeSteps = useMemo(
+    () => activePath.map((stepId) => flowStepMap[stepId]),
+    [activePath]
+  );
+
+  const safeIndex = Math.min(currentIndex, activeSteps.length - 1);
+  const currentStep = activeSteps[safeIndex];
+  const CurrentScreen = screensByStepId[currentStep.id];
+
+  const { events, track, trackScreenExit, clearEvents, exportEvents } =
+    useInteractionTracker(currentStep.id);
 
   const updateData = (data: Partial<QuoteData>) => {
     setQuoteData((prev) => ({ ...prev, ...data }));
@@ -52,21 +88,7 @@ export function QuoteFlow() {
 
   const onNext = () => {
     trackScreenExit("click_next");
-    setCurrentIndex((prev) => {
-      // BIFURCACIÓN: Si estamos en PlansScreen (índice 4) y el usuario NO quiere comparar
-      // saltamos a PromotionsScreen (índice 7)
-      if (prev === 4 && quoteData.wantsToCompare === false) {
-        return 7; 
-      }
-      
-      // FIN DE FLUJO: Si estamos en DownloadComparisonScreen (índice 6) o en la última pantalla, no avanzamos.
-      if (prev === 6 || prev === screens.length - 1) {
-        return prev;
-      }
-      
-      // Flujo normal paso a paso
-      return prev + 1;
-    });
+    setCurrentIndex((prev) => Math.min(prev + 1, activeSteps.length - 1));
   };
 
   const onBack = () => {
@@ -99,15 +121,15 @@ export function QuoteFlow() {
         <section className="hero">
           <div>
             <span className="hero-chip">POC flujo comercial</span>
-            <h1>Simulación de cotización Humana</h1>
+            <h1>Simulacion de cotizacion Humana</h1>
             <p>
-              Flujo navegable para medir interacción de pantallas antes de pasar
-              a integración real con backend.
+              Flujo navegable para medir interaccion de pantallas antes de pasar
+              a integracion real con backend.
             </p>
           </div>
         </section>
 
-        <ProgressStepper steps={flowSteps} currentIndex={currentIndex} />
+        <ProgressStepper steps={activeSteps} currentIndex={safeIndex} />
 
         <div className="content-layout">
           <CurrentScreen
@@ -115,14 +137,13 @@ export function QuoteFlow() {
             updateData={updateData}
             onNext={onNext}
             onBack={onBack}
-            isFirst={currentIndex === 0}
-            // En este diagrama, el paso 6.2 también es considerado un "Fin" del flujo
-            isLast={currentIndex === screens.length - 1 || currentIndex === 6}
+            isFirst={safeIndex === 0}
+            isLast={safeIndex === activeSteps.length - 1}
             track={track}
           />
 
           <aside className="metrics-panel">
-            <h3>Métricas POC</h3>
+            <h3>Metricas POC</h3>
 
             <div className="metric">
               <span>Pantalla actual</span>
@@ -144,7 +165,7 @@ export function QuoteFlow() {
             </button>
 
             <button className="btn-danger full" onClick={clearEvents}>
-              Limpiar métricas
+              Limpiar metricas
             </button>
 
             <div className="event-list">

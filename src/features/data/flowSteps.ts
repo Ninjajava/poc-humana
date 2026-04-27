@@ -1,11 +1,11 @@
-import type { FlowStep } from "../types";
+import type { FlowStep, FlowStepId } from "../types";
 
 export const flowSteps: FlowStep[] = [
   {
     id: "quote-target",
     number: "1",
-    title: "Seleccionar a quién cotizar",
-    description: "Define si la cotización será para una persona natural u otro perfil."
+    title: "Seleccionar a quien cotizar",
+    description: "Define si la cotizacion sera para una persona natural u otro perfil."
   },
   {
     id: "holder-data",
@@ -17,7 +17,7 @@ export const flowSteps: FlowStep[] = [
     id: "beneficiaries",
     number: "2.1",
     title: "Datos de beneficiarios",
-    description: "Registra beneficiarios asociados a la cotización."
+    description: "Registra beneficiarios asociados a la cotizacion."
   },
   {
     id: "products",
@@ -50,10 +50,22 @@ export const flowSteps: FlowStep[] = [
     description: "Visualiza promociones aplicables antes de iniciar venta."
   },
   {
+    id: "quote-send-login",
+    number: "8.2",
+    title: "Iniciar sesion para enviar cotizacion",
+    description: "Autenticacion con credenciales para enviar cotizacion."
+  },
+  {
+    id: "quote-send-followup",
+    number: "8.2.1",
+    title: "Enviar cotizacion y dar seguimiento",
+    description: "Envio al cliente y registro de seguimiento comercial."
+  },
+  {
     id: "login",
     number: "8.3 - 8.3.1",
     title: "Iniciar venta",
-    description: "Autenticación con credenciales personales."
+    description: "Autenticacion con credenciales personales."
   },
   {
     id: "sales-stage",
@@ -62,3 +74,7 @@ export const flowSteps: FlowStep[] = [
     description: "Inicio formal del proceso comercial."
   }
 ];
+
+export const flowStepMap = Object.fromEntries(
+  flowSteps.map((step) => [step.id, step])
+) as Record<FlowStepId, FlowStep>;
