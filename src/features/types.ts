@@ -19,10 +19,10 @@ export interface FlowStep {
 
 export interface QuoteData {
   quoteTarget?: string;
-  documentType?: string;
-  documentNumber?: string;
+  genero?: string;
+  edad?: string;
   fullName?: string;
-  email?: string;
+  provincia?: string;
   phone?: string;
   beneficiaryName?: string;
   selectedProduct?: string;
