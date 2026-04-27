@@ -1,5 +1,8 @@
 import type { QuoteData } from "../types";
 import { ScreenShell } from "../../shared/components/ScreenShell";
+import { availablePlans } from "../data/plansData";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ScreenProps {
   data: QuoteData;
@@ -213,31 +216,13 @@ export function ProductsScreen(props: ScreenProps) {
 export function PlansScreen(props: ScreenProps) {
   const { data, updateData, track } = props;
 
-  const plans = [
-    {
-      name: "Esencial",
-      price: "$45 / mes",
-      benefits: "Cobertura básica, consultas y emergencias."
-    },
-    {
-      name: "Plus",
-      price: "$75 / mes",
-      benefits: "Mayor cobertura, especialistas y hospitalización."
-    },
-    {
-      name: "Premium",
-      price: "$110 / mes",
-      benefits: "Cobertura ampliada, red preferente y beneficios extra."
-    }
-  ];
-
   return (
     <ScreenShell
       title="Visualizar planes y seleccionar plan"
-      description="Agrupa los pasos 5 y 6 del flujo."
+      description="Agrupa los pasos 5 y 6 del flujo. Seleccione un plan o elija compararlos."
     >
       <div className="plan-grid">
-        {plans.map((plan) => (
+{availablePlans.map((plan) => (
           <button
             key={plan.name}
             className={`plan-card ${data.selectedPlan === plan.name ? "selected" : ""}`}
@@ -251,6 +236,32 @@ export function PlansScreen(props: ScreenProps) {
             <p>{plan.benefits}</p>
           </button>
         ))}
+      </div>
+
+      <div style={{ marginTop: "2rem", padding: "1.5rem", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
+        <h3 style={{ marginTop: 0, marginBottom: "1rem", fontSize: "1rem" }}>¿Desea comparar planes?</h3>
+        <div className="option-grid">
+          <button
+            className={`option-card ${data.wantsToCompare === true ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: true });
+              track("decision_compare_plans", { wantsToCompare: true });
+            }}
+          >
+            <strong>Sí</strong>
+            <span>Quiero ver un cuadro comparativo</span>
+          </button>
+          <button
+            className={`option-card ${data.wantsToCompare === false ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: false });
+              track("decision_compare_plans", { wantsToCompare: false });
+            }}
+          >
+            <strong>No</strong>
+            <span>Continuar con el plan seleccionado</span>
+          </button>
+        </div>
       </div>
 
       <Actions {...props} />
@@ -350,3 +361,146 @@ export function SalesStageScreen(props: ScreenProps) {
     </ScreenShell>
   );
 }
+
+export function ComparePlansScreen(props: ScreenProps) {
+  const { data, updateData, track } = props;
+
+  const plans = [
+    { name: "Esencial", price: "$45 / mes" },
+    { name: "Plus", price: "$75 / mes" },
+    { name: "Premium", price: "$110 / mes" }
+  ];
+
+  // Inicializar arreglo si no existe
+  const selectedToCompare = data.plansToCompare || [];
+
+  const togglePlanCompare = (planName: string) => {
+    const isSelected = selectedToCompare.includes(planName);
+    let newSelection;
+    
+    if (isSelected) {
+      newSelection = selectedToCompare.filter(p => p !== planName);
+    } else {
+      if (selectedToCompare.length >= 3) return; // Limitar a max 3 planes
+      newSelection = [...selectedToCompare, planName];
+    }
+    
+    updateData({ plansToCompare: newSelection });
+    track("toggle_compare_plan", { plan: planName, isSelected: !isSelected });
+  };
+
+  return (
+    <ScreenShell
+      title="6.1 Seleccionar planes a comparar"
+      description="Seleccione hasta 3 planes para generar un documento comparativo detallado."
+    >
+      <div className="plan-grid">
+        {availablePlans.map((plan) => (
+          <button
+            key={plan.name}
+            className={`plan-card ${data.selectedPlan === plan.name ? "selected" : ""}`}
+            onClick={() => togglePlanCompare(plan.name)}
+          >
+            <strong>{plan.name}</strong>
+            <span className="price">{plan.price}</span>
+            <p>{selectedToCompare.includes(plan.name) ? "✓ Seleccionado para comparar" : "Haz clic para seleccionar"}</p>
+          </button>
+        ))}
+      </div>
+
+      <Actions {...props} />
+    </ScreenShell>
+  );
+}
+
+export function DownloadComparisonScreen(props: ScreenProps) {
+  const { data, track } = props;
+  const selectedPlansNames = data.plansToCompare || [];
+
+  const handleGeneratePDF = () => {
+    // 1. Filtrar los datos reales basados en la selección del usuario
+    const plansToCompare = availablePlans.filter(plan => 
+      selectedPlansNames.includes(plan.name)
+    );
+
+    if (plansToCompare.length === 0) return;
+
+    // 2. Inicializar el documento PDF
+    const doc = new jsPDF();
+
+    // 3. Agregar título y cabecera
+    doc.setFontSize(18);
+    doc.setTextColor(0, 123, 255); // Azul estilo Humana
+    doc.text("Comparativo de Planes - Humana", 14, 22);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text("Resumen detallado generado para la simulación de cotización.", 14, 30);
+
+    // 4. Preparar los datos dinámicos para la tabla
+    // Las columnas serán: "Característica" + Nombre de cada plan seleccionado
+    const tableColumns = ["Característica", ...plansToCompare.map(p => p.name)];
+    
+    // Las filas serán los atributos que queremos comparar
+    const priceRow = ["Costo Mensual", ...plansToCompare.map(p => p.price)];
+    const benefitsRow = ["Cobertura", ...plansToCompare.map(p => p.benefits)];
+
+    // 5. Dibujar la tabla dinámica
+    autoTable(doc, {
+      startY: 40,
+      head: [tableColumns],
+      body: [
+        priceRow,
+        benefitsRow
+      ],
+      headStyles: { fillColor: [0, 123, 255] },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      theme: 'grid'
+    });
+
+    // 6. Guardar el archivo
+    doc.save("Comparativo_Planes_Humana.pdf");
+    
+    // Trackear el evento
+    track("download_dynamic_pdf", { plans: selectedPlansNames });
+  };
+
+  return (
+    <ScreenShell
+      title="6.2 Descargar comparativo"
+      description="Visualice y descargue el PDF con el comparativo de los planes seleccionados."
+    >
+      <div className="summary-card" style={{ textAlign: "center", padding: "2rem" }}>
+        <h2>Cuadro Comparativo Generado</h2>
+        <p style={{ marginBottom: "1.5rem" }}>
+          Se ha generado el comparativo para los siguientes planes:
+          <br/>
+          <strong>{selectedPlansNames.length > 0 ? selectedPlansNames.join(" vs ") : "Ningún plan seleccionado"}</strong>
+        </p>
+
+        <button
+          className="btn-primary"
+          onClick={handleGeneratePDF}
+          disabled={selectedPlansNames.length === 0}
+        >
+          📄 Descargar PDF
+        </button>
+      </div>
+
+      <div className="success-panel" style={{ marginTop: "2rem" }}>
+        <h2>Fin del flujo de comparación</h2>
+        <p>El broker puede enviar este documento al cliente para su análisis.</p>
+      </div>
+
+      <div className="actions">
+        <button className="btn-secondary" onClick={props.onBack}>
+          Atrás
+        </button>
+        <button className="btn-primary" onClick={() => track("finish_flow_comparison")}>
+          Finalizar
+        </button>
+      </div>
+    </ScreenShell>
+  );
+}
+

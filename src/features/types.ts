@@ -4,6 +4,8 @@ export type FlowStepId =
   | "beneficiaries"
   | "products"
   | "plans"
+  | "compare-plans"
+  | "download-comparison"
   | "promotions"
   | "login"
   | "sales-stage";
@@ -26,4 +28,6 @@ export interface QuoteData {
   selectedProduct?: string;
   selectedPlan?: string;
   selectedPromotion?: string;
+  wantsToCompare?: boolean;
+  plansToCompare?: string[];
 }
