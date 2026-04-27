@@ -1,5 +1,8 @@
 import type { QuoteData } from "../types";
 import { ScreenShell } from "../../shared/components/ScreenShell";
+import { availablePlans } from "../data/plansData";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ScreenProps {
   data: QuoteData;
@@ -247,10 +250,10 @@ export function PlansScreen(props: ScreenProps) {
   return (
     <ScreenShell
       title="Visualizar planes y seleccionar plan"
-      description="Agrupa los pasos 5 y 6 del flujo."
+      description="Agrupa los pasos 5 y 6 del flujo. Seleccione un plan o elija compararlos."
     >
       <div className="plan-grid">
-        {plans.map((plan) => (
+{availablePlans.map((plan) => (
           <button
             key={plan.name}
             className={`plan-card ${data.selectedPlan === plan.name ? "selected" : ""}`}
@@ -264,6 +267,32 @@ export function PlansScreen(props: ScreenProps) {
             <p>{plan.benefits}</p>
           </button>
         ))}
+      </div>
+
+      <div style={{ marginTop: "2rem", padding: "1.5rem", backgroundColor: "#f8f9fa", borderRadius: "8px" }}>
+        <h3 style={{ marginTop: 0, marginBottom: "1rem", fontSize: "1rem" }}>¿Desea comparar planes?</h3>
+        <div className="option-grid">
+          <button
+            className={`option-card ${data.wantsToCompare === true ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: true });
+              track("decision_compare_plans", { wantsToCompare: true });
+            }}
+          >
+            <strong>Sí</strong>
+            <span>Quiero ver un cuadro comparativo</span>
+          </button>
+          <button
+            className={`option-card ${data.wantsToCompare === false ? "selected" : ""}`}
+            onClick={() => {
+              updateData({ wantsToCompare: false });
+              track("decision_compare_plans", { wantsToCompare: false });
+            }}
+          >
+            <strong>No</strong>
+            <span>Continuar con el plan seleccionado</span>
+          </button>
+        </div>
       </div>
 
       <Actions {...props} />

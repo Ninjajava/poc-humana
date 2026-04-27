@@ -32,6 +32,18 @@ export const flowSteps: FlowStep[] = [
     description: "Consulta planes, tarifas y beneficios disponibles."
   },
   {
+    id: "compare-plans",
+    number: "6.1",
+    title: "Seleccionar planes a comparar",
+    description: "Selección de hasta 3 planes para cuadro comparativo."
+  },
+  {
+    id: "download-comparison",
+    number: "6.2",
+    title: "Descargar comparativo",
+    description: "Generación y descarga del documento en PDF."
+  },
+  {
     id: "promotions",
     number: "8",
     title: "Promociones y resumen",

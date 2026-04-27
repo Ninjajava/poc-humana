@@ -4,6 +4,8 @@ export type FlowStepId =
   | "beneficiaries"
   | "products"
   | "plans"
+  | "compare-plans"
+  | "download-comparison"
   | "promotions"
   | "quote-send-login"
   | "quote-send-followup"

@@ -14,7 +14,9 @@ import {
   QuoteSendFollowupScreen,
   QuoteSendLoginScreen,
   QuoteTargetScreen,
-  SalesStageScreen
+  SalesStageScreen,
+  ComparePlansScreen,      // Añadido
+  DownloadComparisonScreen // Añadido
 } from "../screens/QuoteScreens";
 
 interface ScreenProps {
@@ -91,7 +93,16 @@ export function QuoteFlow() {
 
   const onBack = () => {
     trackScreenExit("click_back");
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+    setCurrentIndex((prev) => {
+      // BIFURCACIÓN INVERSA: Si estamos en PromotionsScreen (índice 7)
+      // debemos retroceder a PlansScreen (índice 4) saltándonos las pantallas de comparativo
+      if (prev === 7) {
+        return 4;
+      }
+      
+      // Flujo normal hacia atrás
+      return Math.max(prev - 1, 0);
+    });
   };
 
   const totalElapsedSeconds = useMemo(() => {
