@@ -12,18 +12,23 @@ import {
   ProductsScreen,
   PromotionsScreen,
   QuoteTargetScreen,
-  SalesStageScreen
+  SalesStageScreen,
+  ComparePlansScreen,      // Añadido
+  DownloadComparisonScreen // Añadido
 } from "../screens/QuoteScreens";
 
+// El orden de los componentes debe coincidir exactamente con el de flowSteps.ts
 const screens = [
-  QuoteTargetScreen,
-  HolderDataScreen,
-  BeneficiariesScreen,
-  ProductsScreen,
-  PlansScreen,
-  PromotionsScreen,
-  LoginScreen,
-  SalesStageScreen
+  QuoteTargetScreen,        // Índice 0
+  HolderDataScreen,         // Índice 1
+  BeneficiariesScreen,      // Índice 2
+  ProductsScreen,           // Índice 3
+  PlansScreen,              // Índice 4
+  ComparePlansScreen,       // Índice 5 (Nuevo 6.1)
+  DownloadComparisonScreen, // Índice 6 (Nuevo 6.2 - Fin)
+  PromotionsScreen,         // Índice 7 (Paso 8)
+  LoginScreen,              // Índice 8
+  SalesStageScreen          // Índice 9
 ];
 
 export function QuoteFlow() {
@@ -47,12 +52,35 @@ export function QuoteFlow() {
 
   const onNext = () => {
     trackScreenExit("click_next");
-    setCurrentIndex((prev) => Math.min(prev + 1, flowSteps.length - 1));
+    setCurrentIndex((prev) => {
+      // BIFURCACIÓN: Si estamos en PlansScreen (índice 4) y el usuario NO quiere comparar
+      // saltamos a PromotionsScreen (índice 7)
+      if (prev === 4 && quoteData.wantsToCompare === false) {
+        return 7; 
+      }
+      
+      // FIN DE FLUJO: Si estamos en DownloadComparisonScreen (índice 6) o en la última pantalla, no avanzamos.
+      if (prev === 6 || prev === screens.length - 1) {
+        return prev;
+      }
+      
+      // Flujo normal paso a paso
+      return prev + 1;
+    });
   };
 
   const onBack = () => {
     trackScreenExit("click_back");
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+    setCurrentIndex((prev) => {
+      // BIFURCACIÓN INVERSA: Si estamos en PromotionsScreen (índice 7)
+      // debemos retroceder a PlansScreen (índice 4) saltándonos las pantallas de comparativo
+      if (prev === 7) {
+        return 4;
+      }
+      
+      // Flujo normal hacia atrás
+      return Math.max(prev - 1, 0);
+    });
   };
 
   const totalElapsedSeconds = useMemo(() => {
@@ -88,7 +116,8 @@ export function QuoteFlow() {
             onNext={onNext}
             onBack={onBack}
             isFirst={currentIndex === 0}
-            isLast={currentIndex === flowSteps.length - 1}
+            // En este diagrama, el paso 6.2 también es considerado un "Fin" del flujo
+            isLast={currentIndex === screens.length - 1 || currentIndex === 6}
             track={track}
           />
 
