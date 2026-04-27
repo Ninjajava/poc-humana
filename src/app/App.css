@@ -295,6 +295,11 @@ select:focus {
   background: var(--humana-blue);
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-secondary {
   background: #e6f0f7;
   color: var(--humana-blue);
