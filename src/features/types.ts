@@ -5,6 +5,8 @@ export type FlowStepId =
   | "products"
   | "plans"
   | "promotions"
+  | "quote-send-login"
+  | "quote-send-followup"
   | "login"
   | "sales-stage";
 
@@ -26,4 +28,6 @@ export interface QuoteData {
   selectedProduct?: string;
   selectedPlan?: string;
   selectedPromotion?: string;
+  nextAction?: "sale" | "send-quote";
+  followupChannel?: string;
 }
